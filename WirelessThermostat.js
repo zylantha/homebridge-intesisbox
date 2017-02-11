@@ -62,7 +62,10 @@ module.exports = function WirelessAcova (TX_GPIO, RX_GPIO) {
       var timeout;
 
       this.rfSniffer.on('data', function (data) {
-        if(data.code == decimalValue) { return; }
+        if(data.code == decimalValue) {
+          console.log("received code sent");
+          return;
+        }
         
         var response = this.decode(data.code)
         
