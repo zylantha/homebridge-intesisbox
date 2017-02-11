@@ -72,7 +72,7 @@ module.exports = function WirelessAcova (TX_GPIO, RX_GPIO) {
         if(response.id == id) {
           clearTimeout(timeout);
           if(callback) callback(response.command == this.COMMAND_OK_WITH_VALUE ? response.value : undefined);
-          this.rfSniffer.removeListener('data');
+          //this.rfSniffer.removeListener('data');
         } else {
           console.log("Received another signal:", data.code, "pulse length :", data.pulseLength);
         }
