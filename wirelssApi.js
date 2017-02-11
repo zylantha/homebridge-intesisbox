@@ -13,10 +13,19 @@ var data = {
     currentRelativeHumidity: 30
 };
 
+wirelessThermostat.send(1, 3, null, function(value) {
+  console.log("Success, responded: ", value);
+  data.currentTemperature = value;
+});
+
 wirelessThermostat.send(1, 4, null, function(value) {
   console.log("Success, responded: ", value);
   data.currentTemperature = value/10;
-  //data.targetHeatingCoolingState = thcs;
+});
+
+wirelessThermostat.send(1, 5, null, function(value) {
+  console.log("Success, responded: ", value);
+  data.currentRelativeHumidity = value/10;
 });
 
 //ROUTING
