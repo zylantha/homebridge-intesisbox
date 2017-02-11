@@ -14,19 +14,23 @@ var data = {
 };
 
 wirelessThermostat.send(1, 3, null, function(value) {
-  console.log("Success, responded: ", value);
+  console.log("Success, currentHeatingCoolingState: ", value);
   data.currentHeatingCoolingState = value;
+
+  wirelessThermostat.send(1, 4, null, function(value) {
+    console.log("Success, currentTemperature: ", value/10);
+    data.currentTemperature = value/10;
+    
+    wirelessThermostat.send(1, 5, null, function(value) {
+      console.log("Success, currentRelativeHumidity: ", value/10);
+      data.currentRelativeHumidity = value/10;
+    }); 
+  });
 });
 
-wirelessThermostat.send(1, 4, null, function(value) {
-  console.log("Success, responded: ", value);
-  data.currentTemperature = value/10;
-});
 
-wirelessThermostat.send(1, 5, null, function(value) {
-  console.log("Success, responded: ", value);
-  data.currentRelativeHumidity = value/10;
-});
+
+
 
 //ROUTING
 app
