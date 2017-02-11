@@ -15,6 +15,7 @@ var data = {
 
 wirelessThermostat.send(1, 4, null, function(value) {
   console.log("Success, responded: ", value);
+  currentTemperature = value/10;
   //data.targetHeatingCoolingState = thcs;
 });
 
