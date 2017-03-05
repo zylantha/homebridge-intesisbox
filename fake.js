@@ -13,14 +13,17 @@ var data = {
 //ROUTING
 app
 .get('/status', function (req, res, next) {
+  console.log("Get status" data);
   res.send(data);
 })
 .get('/targetTemperature/:temperature', function (req, res, next) { //Set Temperature
+  console.log("Get targetTemperature", req.params.temperature);
   data.currentTemperature = data.targetTemperature;
   data.targetTemperature = parseFloat(req.params.temperature);
   res.sendStatus(200);
 })
 .get('/targetHeatingCoolingState/:state', function (req, res, next) { //Set target state
+  console.log("Get targetHeatingCoolingState", req.params.state);
   data.currentHeatingCoolingState = data.targetHeatingCoolingState == 3 ? 2 : data.targetHeatingCoolingState;
   data.targetHeatingCoolingState = parseInt(req.params.state);
   res.sendStatus(200);
