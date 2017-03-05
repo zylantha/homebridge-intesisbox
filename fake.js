@@ -13,7 +13,7 @@ var data = {
 //ROUTING
 app
 .get('/status', function (req, res, next) {
-  console.log("Get status" data);
+  console.log("Get status", data);
   res.send(data);
 })
 .get('/targetTemperature/:temperature', function (req, res, next) { //Set Temperature
