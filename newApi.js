@@ -49,14 +49,14 @@ app.get('/', function (req, res) {
 })
 .get('/off', function (req, res, next) { 
   console.log("Off");
-  data.currentHeatingCoolingState = 0;
-  data.targetHeatingCoolingState = 0;
+  data.currentHeatingCoolingState = 2;
+  data.targetHeatingCoolingState = 2;
   res.sendStatus(200);
 })
 .get('/comfort', function (req, res, next) { 
   console.log("Confort");
-  data.currentHeatingCoolingState = 2;
-  data.targetHeatingCoolingState = 2;
+  data.currentHeatingCoolingState = 1;
+  data.targetHeatingCoolingState = 1;
   res.sendStatus(200);
 })
 .get('*', function (req, res, next) { 
