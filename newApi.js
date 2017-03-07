@@ -19,7 +19,7 @@ var data = {
 
 function loop() {
     rfEmitter.sendCode(data.currentHeatingCoolingState, function(error, stdout) {
-        if(error) console.log("An error occured");
+        if(error) console.log("An error occured while sending", data.currentHeatingCoolingState);
         console.log("Sent: " + stdout);
     });
 };
