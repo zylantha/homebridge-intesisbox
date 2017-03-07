@@ -19,7 +19,7 @@ var data = {
 
 function loop() {
     rfEmitter.sendCode(data.currentHeatingCoolingState, function(error, stdout) {
-        if(error) console.log("An error occured while sending", data.currentHeatingCoolingState);
+        if(error) console.log("An error occured while sending", data.currentHeatingCoolingState, "\n Are you sudo?");
         console.log("Sent: " + stdout);
     });
 };
@@ -55,8 +55,8 @@ app.get('/', function (req, res) {
 })
 .get('/comfort', function (req, res, next) { 
   console.log("Confort");
-  data.currentHeatingCoolingState = 1;
-  data.targetHeatingCoolingState = 1;
+  data.currentHeatingCoolingState = 2;
+  data.targetHeatingCoolingState = 2;
   res.sendStatus(200);
 })
 .get('*', function (req, res, next) { 
