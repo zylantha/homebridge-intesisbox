@@ -56,6 +56,10 @@ app.get('/', function (req, res) {
   data.currentHeatingCoolingState = 1;
   data.targetHeatingCoolingState = 1;
   res.sendStatus(200);
+})
+.get('*', function (req, res, next) { 
+  console.log("Other request", req.params);
+  res.sendStatus(200);
 });
 
 var server = app.listen(4321, function () {
