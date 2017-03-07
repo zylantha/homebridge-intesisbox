@@ -17,10 +17,10 @@ var data = {
     currentRelativeHumidity: 30
 };
 
-function loop() {
+function send(value) {
     var code;
 
-    if (data.currentHeatingCoolingState == 0) { 
+    if (value == 0) { 
       code = 2; //odd value not 0
     } else if (data.currentHeatingCoolingState == 1) {
       code = 1; //even value
@@ -32,6 +32,10 @@ function loop() {
           console.log("Sent: " + stdout);
       });
     }
+};
+
+function loop() {
+    send(data.currentHeatingCoolingState);
 };
 
 loop();
@@ -62,12 +66,14 @@ app.get('/', function (req, res) {
   console.log("Off");
   data.currentHeatingCoolingState = 0;
   data.targetHeatingCoolingState = 0;
+  send(0);
   res.sendStatus(200);
 })
 .get('/comfort', function (req, res, next) { 
   console.log("Confort");
   data.currentHeatingCoolingState = 1;
   data.targetHeatingCoolingState = 1;
+  send(1);
   res.sendStatus(200);
 })
 .get('*', function (req, res, next) { 
