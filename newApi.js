@@ -35,7 +35,7 @@ function loop() {
 };
 
 loop();
-var interval = setInterval(loop, 3*1000);
+var interval = setInterval(loop, 30*1000);
 
 //ROUTING
 app.get('/', function (req, res) {
@@ -57,6 +57,7 @@ app.get('/', function (req, res) {
   data.targetHeatingCoolingState = parseInt(req.params.state);
   res.sendStatus(200);
 })
+//to manage old pluggin
 .get('/off', function (req, res, next) { 
   console.log("Off");
   data.currentHeatingCoolingState = 0;
