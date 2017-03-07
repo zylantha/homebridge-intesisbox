@@ -18,11 +18,20 @@ var data = {
 };
 
 function loop() {
-    var code = data.currentHeatingCoolingState%2 == 0 ? 2 : 1; 
-    rfEmitter.sendCode(code, function(error, stdout) {
-        if(error) console.log("An error occured while sending", data.currentHeatingCoolingState, "\n Are you sudo?");
-        console.log("Sent: " + stdout);
-    });
+    var code;
+
+    if (data.currentHeatingCoolingState == 0) { 
+      code = 2; //odd value not 0
+    } else if (data.currentHeatingCoolingState == 1) {
+      code = 1; //even value
+    }
+
+    if (code !== undefined) {
+      rfEmitter.sendCode(code, function(error, stdout) {
+          if(error) console.log("An error occured while sending", data.currentHeatingCoolingState, "\n Are you sudo?");
+          console.log("Sent: " + stdout);
+      });
+    }
 };
 
 loop();
