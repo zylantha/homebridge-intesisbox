@@ -27,6 +27,10 @@ app
   data.currentHeatingCoolingState = data.targetHeatingCoolingState == 3 ? 2 : data.targetHeatingCoolingState;
   data.targetHeatingCoolingState = parseInt(req.params.state);
   res.sendStatus(200);
+})
+.get('*', function (req, res, next) { 
+  console.log("Other request", req.params);
+  res.sendStatus(200);
 });
 
 
