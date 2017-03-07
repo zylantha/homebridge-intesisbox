@@ -3,6 +3,8 @@ var express = require('express');
 var app = express();
 var rpi433    = require('rpi-433');
 
+var TX_GPIO = 4;
+
 var rfEmitter = rpi433.emitter({
       pin: TX_GPIO || 4
 });
