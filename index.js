@@ -1,44 +1,66 @@
+"use strict";
+
+/*
+
+HAP Doc can be found here : https://github.com/KhaosT/HAP-NodeJS/blob/master/lib/gen/HomeKitTypes.js
+
+*/
+
 var Service, Characteristic;
-var request = require("request");
+
+var os = require('os');
+var sensor = require('./temperaturehumidity.js');
+
+var IS_RASPBERRY = os.arch() == "arm";
+var DEBUG = true;
 
 module.exports = function(homebridge){
   Service = homebridge.hap.Service;
   Characteristic = homebridge.hap.Characteristic;
-  homebridge.registerAccessory("homebridge-thermostat", "Thermostat", Thermostat);
+  homebridge.registerAccessory("homebridge-simple-thermostat", "Simple Thermostat", SimpleThermostat);
 };
 
-
-function Thermostat(log, config) {
+function SimpleThermostat(log, config) {
+	this.service = new Service.Thermostat(this.name);
 	this.log = log;
-	this.maxTemp = config.maxTemp || 25;
-	this.minTemp = config.minTemp || 15;
+	this.maxTemp = config.maxTemp || 40;
+	this.minTemp = config.minTemp || -20;
+	this.SENSOR_GPIO = config.SENSOR_GPIO || 21;
+	this.SENSOR_TYPE = config.SENSOR_TYPE || 22;
 	this.name = config.name;
-	this.apiroute = config.apiroute || "apiroute";
-	this.log(this.name, this.apiroute);
-	this.username = config.username || null;
-	this.password = config.password || null;
+	this.sensor = new sensor(this.SENSOR_GPIO, this.SENSOR_TYPE, IS_RASPBERRY, DEBUG);
+	//this.sensorUpdater;
+	//this.sensorData;
+	//this.targetHeatingCoolingStateAutoUpdater;
 
-	this.wirelessThermostat = config.wirelessThermostat == true ? true : false;
-	this.wirelessThermostatID = config.wirelessThermostatID || 1;
+	if (this.sensor.init()) {
+	    this.log("Sensor initialized.");
 
-	if(this.username != null && this.password != null){
-		this.auth = {
-			user : this.username,
-			pass : this.password
-		};
+	    this.updateSensorData = function () {
+	      this.sensorData = this.sensor.read();
+	      this.log(this.sensorData);
+		  this.service.getCharacteristic(Characteristic.CurrentTemperature).updateValue(this.sensorData.temperature, null);
+		  this.service.getCharacteristic(Characteristic.CurrentRelativeHumidity).updateValue(this.sensorData.humidity, null);
+
+		  //this.service.setCharacteristic(Characteristic.CurrentRelativeHumidity, this.sensorData.humidity);
+	    };
+	    this.updateSensorData();
+
+	    this.sensorUpdater = setInterval(function(){this.updateSensorData();}.bind(this), 10*1000);
+	} else {
+	    this.log('Failed to initialize sensor');
 	}
-
+	
 	//Characteristic.TemperatureDisplayUnits.CELSIUS = 0;
 	//Characteristic.TemperatureDisplayUnits.FAHRENHEIT = 1;
 	this.temperatureDisplayUnits = Characteristic.TemperatureDisplayUnits.CELSIUS;
-	this.currentTemperature = 19;
-	this.currentRelativeHumidity = 0.70;
+
 	// The value property of CurrentHeatingCoolingState must be one of the following:
 	//Characteristic.CurrentHeatingCoolingState.OFF = 0;
 	//Characteristic.CurrentHeatingCoolingState.HEAT = 1;
 	//Characteristic.CurrentHeatingCoolingState.COOL = 2;
-	this.heatingCoolingState = Characteristic.CurrentHeatingCoolingState.AUTO;
-	this.targetTemperature = 21;
+	this.service.getCharacteristic(Characteristic.TargetTemperature).updateValue(21, null); //TODO Params for default target temps
+	//TODO update old values with HAP
 	this.targetRelativeHumidity = 0.5;
 	this.heatingThresholdTemperature = 25;
 	this.coolingThresholdTemperature = 5;
@@ -47,182 +69,140 @@ function Thermostat(log, config) {
 	//Characteristic.TargetHeatingCoolingState.HEAT = 1;
 	//Characteristic.TargetHeatingCoolingState.COOL = 2;
 	//Characteristic.TargetHeatingCoolingState.AUTO = 3;
-	this.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.AUTO;
-
-	this.service = new Service.Thermostat(this.name);
-
+	//this.targetHeatingCoolingState = Characteristic.TargetHeatingCoolingState.AUTO;
+	//this.currentHeatingCoolingState = this.service.getCharacteristic(Characteristic.TargetHeatingCoolingState).value;
+	this.currentTemperature = this.service.getCharacteristic(Characteristic.CurrentTemperature).value;
 }
 
-Thermostat.prototype = {
+SimpleThermostat.prototype = {
 	//Start
 	identify: function(callback) {
 		this.log("Identify requested!");
-		callback(null);
+		if (callback !== undefined) callback(null);
 	},
 	// Required
 	getCurrentHeatingCoolingState: function(callback) {
-		this.log("getCurrentHeatingCoolingState from:", this.apiroute+"/status");
-		request.get({
-			url: this.apiroute+"/status",
-			auth : this.auth
-		}, function(err, response, body) {
-			if (!err && response.statusCode == 200) {
-				this.log("response success");
-				var json = JSON.parse(body); //{targetHeatingCoolingState":3,"currentHeatingCoolingState":0,"targetTemperature":10,"temperature":12,"humidity":98}
-				this.log("currentHeatingCoolingState is %s", json.currentHeatingCoolingState);
-				this.currentHeatingCoolingState = json.currentHeatingCoolingState;
-				this.service.setCharacteristic(Characteristic.CurrentHeatingCoolingState, this.currentHeatingCoolingState);
-				
-				callback(null, this.currentHeatingCoolingState); // success
-			} else {
-				this.log("Error getting CurrentHeatingCoolingState: %s", err);
-				callback(err);
-			}
-		}.bind(this));
-		this.log("implement getCurrentHeatingCoolingState for WirelessThermostat");
+		this.log("getCurrentHeatingCoolingState:", this.service.getCharacteristic(Characteristic.TargetHeatingCoolingState).value);
+		var error = null;
+		if (error && callback) callback(error);
+		if (callback) callback(null, this.service.getCharacteristic(Characteristic.TargetHeatingCoolingState).value);
 	},
 	getTargetHeatingCoolingState: function(callback) {
-		this.log("getTargetHeatingCoolingState from:", this.apiroute+"/status");
-		request.get({
-			url: this.apiroute+"/status",
-			auth : this.auth
-		}, function(err, response, body) {
-			if (!err && response.statusCode == 200) {
-				this.log("response success");
-				var json = JSON.parse(body); //{"targetHeatingCoolingState":3,"currentHeatingCoolingState":0,"targetTemperature":10,"temperature":12,"humidity":98}
-				this.log("TargetHeatingCoolingState received is %s", json.targetHeatingCoolingState, json.targetStateCode);
-				this.targetHeatingCoolingState = json.targetHeatingCoolingState !== undefined? json.targetHeatingCoolingState : json.targetStateCode;
-				this.log("TargetHeatingCoolingState is now %s", this.targetHeatingCoolingState);
-				//this.service.setCharacteristic(Characteristic.TargetHeatingCoolingState, this.targetHeatingCoolingState);
-				
-				callback(null, this.targetHeatingCoolingState); // success
-			} else {
-				this.log("Error getting TargetHeatingCoolingState: %s", err);
-				callback(err);
-			}
-		}.bind(this));
-		this.log("implement getTargetHeatingCoolingState for WirelessThermostat");
+		this.log("getTargetHeatingCoolingState:", this.targetHeatingCoolingState);
+		var error = null;
+		if (error && callback) callback(error);
+		if (callback) callback(null, this.targetHeatingCoolingState);	
 	},
 	setTargetHeatingCoolingState: function(value, callback) {
-		if(value === undefined) {
-			callback(); //Some stuff call this without value doing shit with the rest
-		} else {
-			this.log("setTargetHeatingCoolingState from/to:", this.targetHeatingCoolingState, value);
-			request.get({
-				url: this.apiroute + "/targetHeatingCoolingState/" + value,
-				auth : this.auth
-			}, function(err, response, body) {
-				if (!err && response.statusCode == 200) {
-					this.log("response success");
-					//this.service.setCharacteristic(Characteristic.TargetHeatingCoolingState, value);
-					this.targetHeatingCoolingState = value;
-					callback(null); // success
-				} else {
-					this.log("Error getting state: %s", err);
-					callback(err);
-				}
-			}.bind(this));
+		this.log("setTargetHeatingCoolingState:", value);
+
+		if(value == Characteristic.TargetHeatingCoolingState.AUTO) {
+			if(this.targetHeatingCoolingStateAutoUpdater === undefined) {
+				var r = function() {
+					var tolerence = 5;
+					if (this.service.getCharacteristic(Characteristic.CurrentTemperature).value <= this.service.getCharacteristic(Characteristic.TargetTemperature).value + tolerence && this.service.getCharacteristic(Characteristic.CurrentTemperature).value >= this.service.getCharacteristic(Characteristic.TargetTemperature).value - tolerence) {
+						this.log("CurrentTemperature", this.service.getCharacteristic(Characteristic.CurrentTemperature).value, "= TargetTemperature (±tolerence)", this.service.getCharacteristic(Characteristic.TargetTemperature).value, "("+tolerence+")");
+					}
+					else if (this.service.getCharacteristic(Characteristic.CurrentTemperature).value > this.service.getCharacteristic(Characteristic.TargetTemperature).value + tolerence) {
+						this.log("CurrentTemperature", this.service.getCharacteristic(Characteristic.CurrentTemperature).value, "> TargetTemperature (+tolerence)", this.service.getCharacteristic(Characteristic.TargetTemperature).value, "("+tolerence+")");
+						this.log("Turn OFF heating.");
+						//TODO : OFF heating system
+						//TODO : > What about starting the AC ? Need another step or a Max temperature before AC...
+					} 
+					else if (this.service.getCharacteristic(Characteristic.CurrentTemperature).value < this.service.getCharacteristic(Characteristic.TargetTemperature).value - tolerence) {
+						this.log("CurrentTemperature", this.service.getCharacteristic(Characteristic.CurrentTemperature).value, "< TargetTemperature (-tolerence)", this.service.getCharacteristic(Characteristic.TargetTemperature).value, "("+tolerence+")");
+						this.log("Turn ON heating.");
+						//TODO : ON heating system
+						//TODO : OFF Cooling
+					} 
+					this.log(this.service.getCharacteristic(Characteristic.CurrentTemperature).value, this.service.getCharacteristic(Characteristic.TargetTemperature).value);
+				};
+				this.targetHeatingCoolingStateAutoUpdater = setInterval(r.bind(this), 1*1000);
+			}
+		} else clearInterval(this.targetHeatingCoolingStateAutoUpdater);
+
+		if(value == Characteristic.TargetHeatingCoolingState.OFF) {
+			this.log("TargetHeatingCoolingState.OFF");
+			//TODO : OFF heating system
+			//TODO : OFF Cooling system
 		}
+
+		if(value == Characteristic.TargetHeatingCoolingState.HEAT) {
+			this.log("TargetHeatingCoolingState.HEAT");
+			//TODO : ON Heating System
+			//TODO : OFF Cooling system
+		}
+
+		if(value == Characteristic.TargetHeatingCoolingState.COOL) {
+			this.log("TargetHeatingCoolingState.COOL > Not impelemented, do OFF on heating system");
+			//TODO : OFF heating system
+			//TODO : ON Cooling system
+		}
+
+		var error = null;
+		if (error && callback) callback(error);
+		if (callback) callback(null);
 	},
 	getCurrentTemperature: function(callback) {
-		this.log("getCurrentTemperature from:", this.apiroute+"/status");
-		request.get({
-			url: this.apiroute+"/status",
-			auth : this.auth
-		}, function(err, response, body) {
-			if (!err && response.statusCode == 200) {
-				this.log("response success");
-				var json = JSON.parse(body); //{targetHeatingCoolingState":3,"currentHeatingCoolingState":0,"temperature":"18.10","humidity":"34.10"}
-				this.log("CurrentTemperature %s", json.currentTemperature);
-				this.currentTemperature = parseFloat(json.currentTemperature);
-				callback(null, this.currentTemperature); // success
-			} else {
-				this.log("Error getting state: %s", err);
-				callback(err);
-			}
-		}.bind(this));
-		this.log("implement getCurrentTemperature for WirelessThermostat");
+		this.log("getCurrentTemperature:", this.service.getCharacteristic(Characteristic.CurrentTemperature).value);
+		var error = null;
+		if (error && callback) callback(error);
+		if (callback) callback(null, this.service.getCharacteristic(Characteristic.CurrentTemperature).value);
+	},
+	setCurrentHeatingCoolingState: function(value, callback) {
+		this.log("setCurrentHeatingCoolingState:", value);
+		//SET ?
+		var error = null;
+		if (error && callback) callback(error);
+		if (callback) callback(null);
 	},
 	getTargetTemperature: function(callback) {
-		this.log("getTargetTemperature from:", this.apiroute+"/status");
-		request.get({
-			url: this.apiroute+"/status",
-			auth : this.auth
-		}, function(err, response, body) {
-			if (!err && response.statusCode == 200) {
-				this.log("response success");
-				var json = JSON.parse(body); //{targetHeatingCoolingState":3,"currentHeatingCoolingState":0"temperature":"18.10","humidity":"34.10"}
-				this.targetTemperature = parseFloat(json.targetTemperature);
-				this.log("Target temperature is %s", this.targetTemperature);
-				callback(null, this.targetTemperature); // success
-			} else {
-				this.log("Error getting state: %s", err);
-				callback(err);
-			}
-		}.bind(this));
-		this.log("implement getTargetTemperature for WirelessThermostat");
+		this.log("getTargetTemperature:", this.targetTemperature);
+		var error = null;
+		if (error && callback) callback(error);
+		if (callback) callback(null, this.targetTemperature);
 	},
 	setTargetTemperature: function(value, callback) {
-		this.log("setTargetTemperature from:", this.apiroute+"/targetTemperature/"+value);
-		request.get({
-			url: this.apiroute+"/targetTemperature/"+value,
-			auth : this.auth
-		}, function(err, response, body) {
-			if (!err && response.statusCode == 200) {
-				this.log("response success");
-				callback(null); // success
-			} else {
-				this.log("Error getting state: %s", err);
-				callback(err);
-			}
-		}.bind(this));
+		this.log("setTargetTemperature:", value);
+		//SET ?
+		var error = null;
+		if (error && callback) callback(error);
+		if (callback) callback(null);
 	},
 	getTemperatureDisplayUnits: function(callback) {
-		this.log("implement getTemperatureDisplayUnits for WirelessThermostat");
 		this.log("getTemperatureDisplayUnits:", this.temperatureDisplayUnits);
 		var error = null;
-		callback(error, this.temperatureDisplayUnits);
+		if (error && callback) callback(error);
+		if (callback) callback(null, this.temperatureDisplayUnits);
 	},
 	setTemperatureDisplayUnits: function(value, callback) {
-		this.log("implement setTemperatureDisplayUnits for WirelessThermostat");
-		this.log("setTemperatureDisplayUnits from %s to %s", this.temperatureDisplayUnits, value);
-		this.temperatureDisplayUnits = value;
+		this.log("setTemperatureDisplayUnits:", value);
+		//SET ?
 		var error = null;
-		callback(error);
+		if (error && callback) callback(error);
+		if (callback) callback(null);
 	},
 
 	// Optional
 	getCurrentRelativeHumidity: function(callback) {
-		this.log("implement getCurrentRelativeHumidity for WirelessThermostat");
-		this.log("getCurrentRelativeHumidity from:", this.apiroute+"/status");
-		request.get({
-			url: this.apiroute+"/status",
-			auth : this.auth
-		}, function(err, response, body) {
-			if (!err && response.statusCode == 200) {
-				this.log("response success");
-				var json = JSON.parse(body); //{"state":"OFF","targetStateCode":5,"temperature":"18.10","humidity":"34.10"}
-				this.log("Humidity state is %s", json.currentRelativeHumidity);
-				this.currentRelativeHumidity = parseFloat(json.currentRelativeHumidity);
-				callback(null, this.currentRelativeHumidity); // success
-			} else {
-				this.log("Error getting state: %s", err);
-				callback(err);
-			}
-		}.bind(this));
+		this.log("getCurrentRelativeHumidity:", this.currentRelativeHumidity);
+		var error = null;
+		if (error && callback) callback(error);
+		if (callback) callback(null, this.currentRelativeHumidity);
 	},
 	getTargetRelativeHumidity: function(callback) {
-		this.log("implement getTargetRelativeHumidity for WirelessThermostat");
 		this.log("getTargetRelativeHumidity:", this.targetRelativeHumidity);
 		var error = null;
-		callback(error, this.targetRelativeHumidity);
+		if (error && callback) callback(error);
+		if (callback) callback(null, this.targetRelativeHumidity);
 	},
 	setTargetRelativeHumidity: function(value, callback) {
-		this.log("implement setTargetRelativeHumidity for WirelessThermostat");
-		this.log("setTargetRelativeHumidity from/to :", this.targetRelativeHumidity, value);
-		this.targetRelativeHumidity = value;
+		this.log("setTargetRelativeHumidity:", value);
+		//SET ? this.targetRelativeHumidity
 		var error = null;
-		callback(error);
+		if (error && callback) callback(error);
+		if (callback) callback(null);
+
 	},
 /*	getCoolingThresholdTemperature: function(callback) {
 		this.log("getCoolingThresholdTemperature: ", this.coolingThresholdTemperature);
@@ -300,19 +280,21 @@ Thermostat.prototype = {
 		this.service
 			.getCharacteristic(Characteristic.Name)
 			.on('get', this.getName.bind(this));
+
 		this.service.getCharacteristic(Characteristic.CurrentTemperature)
 			.setProps({
 				minValue: this.minTemp,
 				maxValue: this.maxTemp,
 				minStep: 1
 			});
+
 		this.service.getCharacteristic(Characteristic.TargetTemperature)
 			.setProps({
 				minValue: this.minTemp,
 				maxValue: this.maxTemp,
 				minStep: 1
 			});
-		this.log(this.minTemp);
+
 		return [informationService, this.service];
 	}
 };
