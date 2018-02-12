@@ -1,79 +1,27 @@
-# homebridge-thermostat
+# homebridge-intesisbox
 
-Supports thermostat devices on HomeBridge Platform
+Supports Mitsubishi Heavy and (probably) many other air conditioners connected via an Intesisbox WiFi interface on HomeBridge Platform
+
+# What is an Intesisbox?
+
+The Intesisbox is one of many different air conditioning interfaces made by Intesis.  They are all very similarly named, and this can be confusing.
+
+Do not confuse the Intesisbox with the Intesishome or any of the other similarly named products - they are functionally different and incompatible!
+
+The Intesisbox provides a WiFi and TCP-controlled interface to air conditioners, connecting directly into the wired remote control interface on the unit.  While there are other versions that talk to the IR interface on 
+these air conditioners, I don't have one so don't know how they differ.  The Intesisbox is intended to talk directly to a home automation system, but the vendor only provides drivers for high-end commercial systems.  
+This module provides a Homebridge compatible interface to control the air conditioner through the Intesisbox.
+
+# Acknowledgements
+
+This code was originally based on the homebridge-thermostat code by pjczx
 
 # Installation
 
-1. Install homebridge using: npm install -g homebridge
-2. Install this plugin using: npm install -g homebridge-thermostat
-3. Update your configuration file. See bellow for a sample. 
+Will complete this once it's working
 
 # Configuration
 
 Configuration sample:
 
- ```
-    {
-        "bridge": {
-            ...
-        },
-        
-        "description": "...",
-
-        "accessories": [
-            {
-                "accessory": "Thermostat",
-                "name": "Thermostat Demo",
-                "apiroute": "http://myurl.com",
-                "maxTemp": 25,
-                "minTemp": 15
-                //optional
-                "maxTemp": "26",
-                "minTemp": "15",
-                "username": "user",
-                "password": "pass"
-            }
-        ],
-
-        "platforms":[]
-    }
-```
-# API Expectations
-
-The `apiroute` is used for two main calls: Get from the thermostat and set the target temperature. Your API should provide
-
-1. Get any thermostat info
-```
-GET /status
-{
-    targetHeatingCoolingState: INT_VALUE_0_TO_3,
-    targetTemperature: FLOAT_VALUE,
-    targetRelativeHumidity: FLOAT_VALUE,
-    currentHeatingCoolingState: INT_VALUE_0_TO_2,
-    currentTemperature: FLOAT_VALUE, //prev temperature
-    currentRelativeHumidity: FLOAT_VALUE_AS_PERCENTAGE //prev humidity
-}
-```
-
-2. Set target HeatingCoolingState
-```
-GET /targetHeatingCoolingState/{INT_VALUE_0_TO_3}
-OK (201)
-```
-
-3. Set target temperature
-```
-GET /targetTemperature/{FLOAT_VALUE}
-OK (201)
-```
-
-4. Set target relative humidity
-```
-GET /targetRelativeHumidity/{FLOAT_VALUE}
-OK (201)
-```
-
-# Heatmiser Support
-
-Folder 'heatmiser' contains a contributed example of the API. It supports Heatmiser wireless thermostats, as long as https://github.com/thoukydides/heatmiser-wifi is installed and working.
-
+Will get a decent configuration sample once it's working
